@@ -26,6 +26,9 @@ from networkx import (
     draw,
     spring_layout,
 )
+
+import networkx as nx
+
 import matplotlib
 from operator import itemgetter
 import random
@@ -37,15 +40,19 @@ import textwrap
 import matplotlib.pyplot as plt
 from typing import Iterator, Dict, List
 
+from pathlib import Path
+from typing import Iterator
+
+
 matplotlib.use("Agg")
 
-__author__ = "Your Name"
+__author__ = "Rose TCHALA SARE"
 __copyright__ = "Universite Paris Diderot"
-__credits__ = ["Your Name"]
+__credits__ = ["Rose TCHALA SARE"]
 __license__ = "GPL"
 __version__ = "1.0.0"
-__maintainer__ = "Your Name"
-__email__ = "your@email.fr"
+__maintainer__ = "Rose TCHALA SARE"
+__email__ = "r.tchalasare@etu.u-paris.fr"
 __status__ = "Developpement"
 
 
@@ -95,41 +102,54 @@ def get_arguments():  # pragma: no cover
     )
     return parser.parse_args()
 
-
+#Fonction qui retourne une liste de fichiers fastq
 def read_fastq(fastq_file: Path) -> Iterator[str]:
-    """Extract reads from fastq files.
+    with open(fastq_file, "r") as file:
+        sequence_count = 0
+        for line in file:
+            if line.startswith(("A", "T", "G", "C", "U")):
+                sequence_count += 1
+                yield line.strip("\n")  # Use yield to return each sequence as an iterator
+        #print(f"There were {sequence_count} sequences in the fastq file.")
 
-    :param fastq_file: (Path) Path to the fastq file.
-    :return: A generator object that iterate the read sequences.
-    """
-    pass
 
-
+#Fonction qui retourne les combinaisons de 5 enchainement de nucléotides au sein de la séquence
 def cut_kmer(read: str, kmer_size: int) -> Iterator[str]:
-    """Cut read into kmers of size kmer_size.
+    for i in range(len(read) - kmer_size + 1):
+        yield read[i:i + kmer_size]
 
-    :param read: (str) Sequence of a read.
-    :return: A generator object that provides the kmers (str) of size kmer_size.
-    """
-    pass
+
 
 
 def build_kmer_dict(fastq_file: Path, kmer_size: int) -> Dict[str, int]:
-    """Build a dictionnary object of all kmer occurrences in the fastq file
+        sequences = read_fastq(fastq_file)  # Read sequences from the FASTQ file
+        kmer_dict = {}
 
-    :param fastq_file: (str) Path to the fastq file.
-    :return: A dictionnary object that identify all kmer occurrences.
-    """
-    pass
+        for sequence in sequences:
+            # Generate k-mers for the current sequence
+            for kmer in cut_kmer(sequence, kmer_size):
+                if kmer in kmer_dict:
+                    kmer_dict[kmer] += 1
+                else:
+                    kmer_dict[kmer] = 1
+        
+        return kmer_dict
+
+
+
 
 
 def build_graph(kmer_dict: Dict[str, int]) -> DiGraph:
-    """Build the debruijn graph
-
-    :param kmer_dict: A dictionnary object that identify all kmer occurrences.
-    :return: A directed graph (nx) of all kmer substring and weight (occurrence).
-    """
-    pass
+    G = nx.DiGraph()
+    for kmer, weight in kmer_dict.items():
+        prefix = kmer[:-1]
+        suffix = kmer[1:]
+        if G.has_edge(prefix, suffix):
+            G[prefix][suffix]['weight'] += weight
+        else:
+            G.add_edge(prefix, suffix, weight=weight)
+    return G
+         
 
 
 def remove_paths(
@@ -295,7 +315,18 @@ def main() -> None:  # pragma: no cover
     Main program function
     """
     # Get arguments
-    args = get_arguments()
+    #args = get_arguments()
+
+    a = read_fastq("../tests/test_two_reads.fq")
+
+    #print(a)
+    #d = build_kmer_dict("../tests/test_two_reads.fq", 6)
+    #graph = build_graph(d)
+    #for edge in graph.edges(data=True):
+    #    print(edge)
+
+          
+
 
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit
